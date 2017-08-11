@@ -1,9 +1,10 @@
 #MicroXplorer Configuration settings - do not modify
 FREERTOS.CountingSemaphores01=slotSemp,5,Dynamic,NULL;itemSemp,5,Dynamic,NULL
 FREERTOS.FootprintOK=true
-FREERTOS.IPParameters=Tasks01,configUSE_TIMERS,FootprintOK,configTOTAL_HEAP_SIZE,configUSE_RECURSIVE_MUTEXES,configUSE_COUNTING_SEMAPHORES,Mutexes01,CountingSemaphores01
+FREERTOS.IPParameters=Tasks01,configUSE_TIMERS,FootprintOK,configTOTAL_HEAP_SIZE,configUSE_RECURSIVE_MUTEXES,configUSE_COUNTING_SEMAPHORES,Mutexes01,CountingSemaphores01,Queues01
 FREERTOS.Mutexes01=qMutex
-FREERTOS.Tasks01=defaultTask,0,128,StartDefaultTask,Default,NULL,Dynamic,NULL,NULL;Task01,0,256,StartTask1,Default,NULL,Dynamic,NULL,NULL;Task02,0,128,StartTask02,Default,NULL,Dynamic,NULL,NULL
+FREERTOS.Queues01=itemQueue,5,int,NULL,Dynamic,NULL,NULL
+FREERTOS.Tasks01=defaultTask,0,128,StartDefaultTask,Default,NULL,Dynamic,NULL,NULL;Task01,0,256,StartTask1,Default,NULL,Dynamic,NULL,NULL;Task02,0,128,StartTask02,Default,NULL,Dynamic,NULL,NULL;producer,-3,128,StartProducer,Default,NULL,Dynamic,NULL,NULL;consumer,-3,128,StartConsumer,Default,NULL,Dynamic,NULL,NULL
 FREERTOS.configTOTAL_HEAP_SIZE=6144
 FREERTOS.configUSE_COUNTING_SEMAPHORES=1
 FREERTOS.configUSE_RECURSIVE_MUTEXES=1
@@ -81,7 +82,7 @@ ProjectManager.BackupPrevious=false
 ProjectManager.CompilerOptimize=2
 ProjectManager.ComputerToolchain=false
 ProjectManager.CoupleFile=false
-ProjectManager.CustomerFirmwarePackage=C\:/Users/user1/STM32Cube/Repository/STM32Cube_FW_F1_V1.4.0
+ProjectManager.CustomerFirmwarePackage=
 ProjectManager.DefaultFWLocation=true
 ProjectManager.DeletePrevious=true
 ProjectManager.DeviceId=STM32F103C8Tx

@@ -58,13 +58,16 @@
 osThreadId defaultTaskHandle;
 osThreadId Task01Handle;
 osThreadId Task02Handle;
+osThreadId producerHandle;
+osThreadId consumerHandle;
+osMessageQId itemQueueHandle;
 osMutexId qMutexHandle;
 osSemaphoreId slotSempHandle;
 osSemaphoreId itemSempHandle;
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
-
+volatile int obj = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -73,6 +76,8 @@ static void MX_GPIO_Init(void);
 void StartDefaultTask(void const * argument);
 void StartTask1(void const * argument);
 void StartTask02(void const * argument);
+void StartProducer(void const * argument);
+void StartConsumer(void const * argument);
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
@@ -124,17 +129,18 @@ int main(void)
 
   /* Create the semaphores(s) */
   /* definition and creation of slotSemp */
-  //osSemaphoreDef(slotSemp);
-  //slotSempHandle = osSemaphoreCreate(osSemaphore(slotSemp), 5);
+  osSemaphoreDef(slotSemp);
+  slotSempHandle = osSemaphoreCreate(osSemaphore(slotSemp), 5);
 
   /* definition and creation of itemSemp */
-  //osSemaphoreDef(itemSemp);
-  //itemSempHandle = osSemaphoreCreate(osSemaphore(itemSemp), 5);
+  osSemaphoreDef(itemSemp);
+  itemSempHandle = osSemaphoreCreate(osSemaphore(itemSemp), 5);
 
   /* USER CODE BEGIN RTOS_SEMAPHORES */
   /* add semaphores, ... */
 
-  slotSempHandle = xSemaphoreCreateCounting(5,0);
+  slotSempHandle = xSemaphoreCreateCounting(5,5);
+  itemSempHandle = xSemaphoreCreateCounting(5,0);
   /* USER CODE END RTOS_SEMAPHORES */
 
   /* USER CODE BEGIN RTOS_TIMERS */
@@ -154,9 +160,22 @@ int main(void)
   osThreadDef(Task02, StartTask02, osPriorityNormal, 0, 128);
   Task02Handle = osThreadCreate(osThread(Task02), NULL);
 
+  /* definition and creation of producer */
+  osThreadDef(producer, StartProducer, osPriorityIdle, 0, 128);
+  producerHandle = osThreadCreate(osThread(producer), NULL);
+
+  /* definition and creation of consumer */
+  osThreadDef(consumer, StartConsumer, osPriorityIdle, 0, 128);
+  consumerHandle = osThreadCreate(osThread(consumer), NULL);
+
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
+
+  /* Create the queue(s) */
+  /* definition and creation of itemQueue */
+  osMessageQDef(itemQueue, 5, int);
+  itemQueueHandle = osMessageCreate(osMessageQ(itemQueue), NULL);
 
   /* USER CODE BEGIN RTOS_QUEUES */
   /* add queues, ... */
@@ -165,7 +184,7 @@ int main(void)
 
   /* Start scheduler */
   osKernelStart();
-  osSemaphoreRelease(slotSempHandle);
+  
   /* We should never get here as control is now taken by the scheduler */
 
   /* Infinite loop */
@@ -302,12 +321,18 @@ void StartTask1(void const * argument)
 	/* Infinite loop */
   for(;;)
   {
-     osMutexWait(qMutexHandle, portMAX_DELAY);
+	  xSemaphoreTake(itemSempHandle, portMAX_DELAY);
+	  osMutexWait(qMutexHandle, portMAX_DELAY);
+	  	  osMessageGet(itemQueueHandle, (uint32_t)obj);
+	  	  obj--;
+	  osMutexRelease(qMutexHandle);
+	  xSemaphoreGive(slotSempHandle);
+     /*osMutexWait(qMutexHandle, portMAX_DELAY);
      HAL_GPIO_TogglePin(amberled_GPIO_Port, amberled_Pin);
      HAL_Delay(500);
      HAL_GPIO_TogglePin(amberled_GPIO_Port, amberled_Pin);
      osMutexRelease(qMutexHandle);
-     HAL_Delay(500);
+     HAL_Delay(500);*/
     //osDelay(1);
   }
   /* USER CODE END StartTask1 */
@@ -316,12 +341,19 @@ void StartTask1(void const * argument)
 /* StartTask02 function */
 void StartTask02(void const * argument)
 {
-	int i = 0;
   /* USER CODE BEGIN StartTask02 */
   /* Infinite loop */
+	int i;
   for(;;)
   {
-	HAL_GPIO_TogglePin(amberledPC_GPIO_Port, amberledPC_Pin);
+	  xSemaphoreTake(slotSempHandle, portMAX_DELAY);
+	  osMutexWait(qMutexHandle, portMAX_DELAY);
+	  	  osMessagePut(itemQueueHandle, (uint32_t)obj, portMAX_DELAY);
+	  	  obj++;
+	  	  //OSMboxPost();
+	  osMutexRelease(qMutexHandle);
+	  xSemaphoreGive(itemSempHandle);
+	/*HAL_GPIO_TogglePin(amberledPC_GPIO_Port, amberledPC_Pin);
 	HAL_Delay(400);
 	if(i++ == 0){
 		osMutexWait(qMutexHandle, portMAX_DELAY);
@@ -332,10 +364,34 @@ void StartTask02(void const * argument)
 	else if(i==20){
 	  //xSemaphoreGive(slotSempHandle);
 	  i = 0;
-	}
+	}*/
     //osDelay(1);
   }
   /* USER CODE END StartTask02 */
+}
+
+/* StartProducer function */
+void StartProducer(void const * argument)
+{
+  /* USER CODE BEGIN StartProducer */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END StartProducer */
+}
+
+/* StartConsumer function */
+void StartConsumer(void const * argument)
+{
+  /* USER CODE BEGIN StartConsumer */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END StartConsumer */
 }
 
 /**
