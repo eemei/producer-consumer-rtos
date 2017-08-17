@@ -68,6 +68,10 @@
 
 /* USER CODE BEGIN Private defines */
 
+typedef struct {
+char *id ;
+int value;
+} mail_t;
 /* USER CODE END Private defines */
 
 void _Error_Handler(char *, int);

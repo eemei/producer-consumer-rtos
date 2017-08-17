@@ -51,7 +51,7 @@
 #include "cmsis_os.h"
 
 /* USER CODE BEGIN Includes */
-
+#include <stdio.h>
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
@@ -62,12 +62,15 @@ osThreadId producerHandle;
 osThreadId consumerHandle;
 osMessageQId itemQueueHandle;
 osMutexId qMutexHandle;
+osMutexId mailMutexHandle;
 osSemaphoreId slotSempHandle;
 osSemaphoreId itemSempHandle;
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
 volatile int obj = 0;
+osMailQId mailBoxHandler;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -81,7 +84,7 @@ void StartConsumer(void const * argument);
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
-
+extern void initialise_monitor_handles(void);
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
@@ -92,7 +95,7 @@ int main(void)
 {
 
   /* USER CODE BEGIN 1 */
-
+	initialise_monitor_handles();
   /* USER CODE END 1 */
 
   /* MCU Configuration----------------------------------------------------------*/
@@ -123,7 +126,14 @@ int main(void)
   osMutexDef(qMutex);
   qMutexHandle = osMutexCreate(osMutex(qMutex));
 
+  /* definition and creation of mailMutex */
+  osMutexDef(mailMutex);
+  mailMutexHandle = osMutexCreate(osMutex(mailMutex));
+
   /* USER CODE BEGIN RTOS_MUTEX */
+  osMailQDef(mailbox, 5, obj);
+  mailBoxHandler = osMailCreate(osMailQ(mailbox), NULL);
+
   /* add mutexes, ... */
   /* USER CODE END RTOS_MUTEX */
 
@@ -161,12 +171,12 @@ int main(void)
   Task02Handle = osThreadCreate(osThread(Task02), NULL);
 
   /* definition and creation of producer */
-  osThreadDef(producer, StartProducer, osPriorityIdle, 0, 128);
-  producerHandle = osThreadCreate(osThread(producer), NULL);
+  //osThreadDef(producer, StartProducer, osPriorityIdle, 0, 128);
+  //producerHandle = osThreadCreate(osThread(producer), NULL);
 
   /* definition and creation of consumer */
-  osThreadDef(consumer, StartConsumer, osPriorityIdle, 0, 128);
-  consumerHandle = osThreadCreate(osThread(consumer), NULL);
+  //osThreadDef(consumer, StartConsumer, osPriorityIdle, 0, 128);
+  //consumerHandle = osThreadCreate(osThread(consumer), NULL);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -194,6 +204,8 @@ int main(void)
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */
+  osMailGet(mailBoxHandler, portMAX_DELAY);
+  printf("object:%d \n", obj);
 
   }
   /* USER CODE END 3 */
@@ -321,10 +333,15 @@ void StartTask1(void const * argument)
 	/* Infinite loop */
   for(;;)
   {
+	  //consumer
+	  //mail_t *mail = (mail_t*)osMailAlloc(mailBoxHandler, osWaitForever);
 	  xSemaphoreTake(itemSempHandle, portMAX_DELAY);
 	  osMutexWait(qMutexHandle, portMAX_DELAY);
-	  	  osMessageGet(itemQueueHandle, (uint32_t)obj);
-	  	  obj--;
+  	    osMessageGet(itemQueueHandle, portMAX_DELAY);
+  	    obj--;
+	  	//mail->id = "consumer";
+	  	//mail->value = obj;
+	  	osMailPut(mailBoxHandler, obj);
 	  osMutexRelease(qMutexHandle);
 	  xSemaphoreGive(slotSempHandle);
      /*osMutexWait(qMutexHandle, portMAX_DELAY);
@@ -348,8 +365,8 @@ void StartTask02(void const * argument)
   {
 	  xSemaphoreTake(slotSempHandle, portMAX_DELAY);
 	  osMutexWait(qMutexHandle, portMAX_DELAY);
-	  	  osMessagePut(itemQueueHandle, (uint32_t)obj, portMAX_DELAY);
-	  	  obj++;
+	    obj++;
+	  	osMessagePut(itemQueueHandle, (uint32_t)obj, portMAX_DELAY);
 	  	  //OSMboxPost();
 	  osMutexRelease(qMutexHandle);
 	  xSemaphoreGive(itemSempHandle);
