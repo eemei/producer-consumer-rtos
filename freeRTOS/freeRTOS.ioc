@@ -1,5 +1,5 @@
 #MicroXplorer Configuration settings - do not modify
-FREERTOS.CountingSemaphores01=slotSemp,5,Dynamic,NULL;itemSemp,5,Dynamic,NULL;mailItemSemp,5,Dynamic,NULL;mailSlotSemp,5,Dynamic,NULL
+FREERTOS.CountingSemaphores01=slotSemp,5,Dynamic,NULL;itemSemp,5,Dynamic,NULL
 FREERTOS.FootprintOK=true
 FREERTOS.IPParameters=Tasks01,configUSE_TIMERS,FootprintOK,configTOTAL_HEAP_SIZE,configUSE_RECURSIVE_MUTEXES,configUSE_COUNTING_SEMAPHORES,Mutexes01,CountingSemaphores01,Queues01
 FREERTOS.Mutexes01=qMutex;mailMutex
