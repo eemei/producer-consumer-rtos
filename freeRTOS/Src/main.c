@@ -55,6 +55,8 @@
 /* USER CODE END Includes */
 
 /* Private variables ---------------------------------------------------------*/
+UART_HandleTypeDef huart1;
+
 osThreadId defaultTaskHandle;
 osThreadId producerHandle;
 osThreadId consumerHandle;
@@ -63,6 +65,7 @@ osMutexId qMutexHandle;
 osMutexId mailMutexHandle;
 osSemaphoreId slotSempHandle;
 osSemaphoreId itemSempHandle;
+
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
@@ -74,6 +77,7 @@ osMailQId mailBoxHandler;
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_USART1_UART_Init(void);
 void StartDefaultTask(void const * argument);
 void StartProducer(void const * argument);
 void StartConsumer(void const * argument);
@@ -84,11 +88,7 @@ extern void initialise_monitor_handles(void);
 /* USER CODE END PFP */
 
 /* USER CODE BEGIN 0 */
-typedef struct mail mailData;
-struct mail{
-	int data;
-	char *name;
-};
+
 /* USER CODE END 0 */
 
 int main(void)
@@ -117,6 +117,7 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_USART1_UART_Init();
 
   /* USER CODE BEGIN 2 */
 
@@ -132,9 +133,6 @@ int main(void)
   mailMutexHandle = osMutexCreate(osMutex(mailMutex));
 
   /* USER CODE BEGIN RTOS_MUTEX */
-  osMailQDef(mailbox, 5, mailData);
-  mailBoxHandler = osMailCreate(osMailQ(mailbox), NULL);
-
   /* add mutexes, ... */
   /* USER CODE END RTOS_MUTEX */
 
@@ -173,6 +171,7 @@ int main(void)
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
+  printf("starting print. \n");
   /* USER CODE END RTOS_THREADS */
 
   /* Create the queue(s) */
@@ -192,22 +191,20 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-/*
- * 	 osEvent  evt;
-	 mailData *rxData;
- */
+
+
+
   while (1)
   {
   /* USER CODE END WHILE */
-/*
- * evt =osMailGet(mailBoxHandler, osWaitForever); //wait for mail
-   if(evt.status == osEventMail){
-     rxData = evt.value.p;
-     printf("object:%d \n", rxData->data);
-     osMailFree(mailBoxHandler, rxData);  //free memory
- */
-  /* USER CODE BEGIN 3 */
 
+  /* USER CODE BEGIN 3 */
+	/*	 evt = osMailGet(mailBoxHandler, osWaitForever);
+		 if(evt.status == osEventMail){
+		  rxData = evt.value.p;
+		  printf("data =%d\n", rxData->data);
+		  osMailFree(mailBoxHandler, rxData);
+		 }*/
   //osMailGet(mailBoxHandler, portMAX_DELAY);
   //printf("object:%d \n", obj);
 
@@ -262,6 +259,25 @@ void SystemClock_Config(void)
 
   /* SysTick_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(SysTick_IRQn, 15, 0);
+}
+
+/* USART1 init function */
+static void MX_USART1_UART_Init(void)
+{
+
+  huart1.Instance = USART1;
+  huart1.Init.BaudRate = 115200;
+  huart1.Init.WordLength = UART_WORDLENGTH_8B;
+  huart1.Init.StopBits = UART_STOPBITS_1;
+  huart1.Init.Parity = UART_PARITY_NONE;
+  huart1.Init.Mode = UART_MODE_TX_RX;
+  huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart1.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart1) != HAL_OK)
+  {
+    _Error_Handler(__FILE__, __LINE__);
+  }
+
 }
 
 /** Configure pins as 
@@ -332,22 +348,18 @@ void StartDefaultTask(void const * argument)
 void StartProducer(void const * argument)
 {
   /* USER CODE BEGIN StartProducer */
-	//mailData *data;
-	//data = osMailAlloc(mailBoxHandler, osWaitForever);  // Allocate memory
   /* Infinite loop */
   for(;;)
   {
     xSemaphoreTake(slotSempHandle, portMAX_DELAY);
     osMutexWait(qMutexHandle, portMAX_DELAY);
     obj++;
-    /*data = osMailAlloc(mailBoxHandler, osWaitForever);
-    data->data = obj;
-    data->name = "producer\n";
-    osMailPut(mailBoxHandler, data);*/
     osMessagePut(itemQueueHandle, (uint32_t)obj, portMAX_DELAY);
 	osMutexRelease(qMutexHandle);
+	 osMutexWait(mailMutexHandle, portMAX_DELAY);
+	 printf("this is the producer thread \t item is [%d] \n", obj);
+	 osMutexRelease(mailMutexHandle);
 	xSemaphoreGive(itemSempHandle);
-    //osDelay(1);
   }
   /* USER CODE END StartProducer */
 }
@@ -356,7 +368,6 @@ void StartProducer(void const * argument)
 void StartConsumer(void const * argument)
 {
   /* USER CODE BEGIN StartConsumer */
-	//mailData *data;
   /* Infinite loop */
   for(;;)
   {
@@ -364,14 +375,12 @@ void StartConsumer(void const * argument)
 	 osMutexWait(qMutexHandle, portMAX_DELAY);
   	 osMessageGet(itemQueueHandle, portMAX_DELAY);
   	 obj--;
-     /*data = osMailAlloc(mailBoxHandler, osWaitForever);
-     data->data = obj;
-     data->name = "consumer\n";
-     osMailPut(mailBoxHandler, data);*/
 	 osMutexRelease(qMutexHandle);
+	 osMutexWait(mailMutexHandle, portMAX_DELAY);
+	 printf("this is the consumer thread \t item is [%d] \n", obj);
+	 osMutexRelease(mailMutexHandle);
 	 xSemaphoreGive(slotSempHandle);
 
-    //osDelay(1);
   }
   /* USER CODE END StartConsumer */
 }
